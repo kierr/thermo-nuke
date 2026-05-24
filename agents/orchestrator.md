@@ -58,7 +58,7 @@ Agent(
 
 The planner returns a structured list of slices with paths, line counts, focus areas, and coverage dimensions.
 
-Parse the planner output to extract each slice's paths and focus.
+Parse the planner output to extract each slice's paths, focus, and COVERS dimensions. Also extract DIMENSION_SKIP (dimensions not present in this diff). Derive the **active dimension set** from the planner output: the union of all COVERS fields + DIMENSION_SKIP keys. This derived set is the single source of truth for Phases 2.5, 3, and 4 — do not use a hardcoded dimension list.
 
 `TN_DIR` (created at startup) is the isolated work directory for all reviewer output and the final report. This prevents collisions when multiple thermo-nuke runs execute concurrently on the same machine (different repos, different branches, or different agents).
 
@@ -76,15 +76,16 @@ For each uncovered file:
 - If it falls under the planner's SKIP exclusions (agent state dirs, generated files, RBI shims), confirm the exclusion is justified — document it in the report.
 - If it should have been covered, **add it to the slice plan** — either merge it into the nearest existing slice or create a new gap-fill slice.
 
-Also verify that **all coverage dimensions** from the planner output have at least one slice addressing them. The authoritative dimension set is defined in the slice-planner agent — maintain consistency. The mandatory dimensions are:
+Also verify that **all coverage dimensions** from the active dimension set have at least one slice addressing them. For each dimension in DIMENSION_SKIP, confirm the justification is valid (the dimension genuinely is not present in this diff).
 
-1. Application code quality (domain-sliced) — always covered by the main slices
-2. Security: injection points, PII flow, auth boundaries, credential handling
-3. Dependency health: lockfile changes, version conflicts, new/removed packages
-4. Database migration ordering: sequencing, rollback safety, model-code coupling
-5. CI/CD: workflow correctness, enforcement gates, script safety
-6. Infrastructure-as-code: config files, build system, tooling configs
-7. Documentation/code drift: comments match code, ADRs match implementation
+Dimension reference (use when creating gap-fill slices to understand scope):
+- application-code: models, services, controllers, jobs, consumers
+- security: injection, PII, auth boundaries, credentials
+- dependencies: lockfile changes, version conflicts, new/removed packages
+- migrations: sequencing, rollback safety, model-code coupling
+- ci-cd: workflow correctness, enforcement gates, script safety
+- infrastructure: config files, build system, tooling configs
+- docs-drift: comments match code, ADRs match implementation
 
 For any dimension with no slice and no explicit exclusion, **create a gap-fill slice** for it. Gap-fill slices are lightweight — they scope only to the uncovered files/dimension and run alongside the domain slices.
 
@@ -102,13 +103,10 @@ Focus: <FOCUS>
 
 Base commit: <BASE>
 
-Cross-cutting concerns to check within your scope:
-- Security: injection points, PII in logging/error paths, auth/param filtering
-- Dependency changes: new/removed packages, version compatibility
-- Migration sequencing: ordering, rollback safety, model-code coupling
-- CI gates: do enforcement checks match the invariants the code relies on?
-- Config safety: secrets, unsafe defaults, drift between config and code
-- Docs drift: do comments match the code? Do ADRs/references still point to real things?
+Cross-cutting concerns for this slice (from COVERS: <dimensions>):
+Check each dimension per your agent definition's cross-cutting concerns guidance.
+Only check dimensions that are present in your scope — if a dimension is not
+relevant, report it as no-scope in your COVERAGE line.
 
 You are a subagent of an orchestrator. Your final response returns to the
 orchestrator's full context — keep it under 150 words. Write your full
@@ -116,7 +114,7 @@ findings to a file at <TN_DIR>/slice-<N>.md, then return the
 file path and a one-line summary of findings count by severity.
 
 Format: FILE: <path> | SUMMARY: <N critical, M high, P medium, Q low findings>
-COVERAGE: <list which cross-cutting dimensions were present in scope and whether they were checked>
+COVERAGE: <dimension>:checked/no-scope for each dimension in the active set>
 ```
 
 For small scopes (single reviewer), the prompt is the same but with all paths included.
@@ -140,17 +138,12 @@ After all reviewers complete, synthesize from their Agent return values (the 150
    5. File-size and decomposition concerns
    6. Modularity and abstraction issues
    7. Legibility and maintainability concerns
-4. **Coverage verification.** Before writing the report, confirm every cross-cutting dimension was actually reviewed by at least one reviewer. Check the COVERAGE lines from reviewer returns against the 7 mandatory dimensions (authoritative list in slice-planner agent):
-   - [ ] Raw SQL / injection points scanned
-   - [ ] PII flow through logging/error paths checked
-   - [ ] All controllers checked for auth + param filtering
-   - [ ] Migration dependencies verified (not just individual correctness)
-   - [ ] CI gates match the invariants the code relies on
-   - [ ] Dependency changes audited for compatibility
-   - [ ] Config files checked for secrets / unsafe defaults
-   - [ ] Comments match code, ADRs/references point to real things
+4. **Coverage verification.** Before writing the report, confirm every dimension in the active dimension set was actually reviewed by at least one reviewer. Check the COVERAGE lines from reviewer returns — every dimension that is NOT in DIMENSION_SKIP must have at least one reviewer reporting `checked`. For each dimension:
+   - If any reviewer confirmed `checked` → dimension is covered.
+   - If all reviewers reported `no-scope` but the dimension is NOT in DIMENSION_SKIP → contradiction. Either the planner missed it or the reviewers missed it. **Spawn a follow-up reviewer** scoped to that dimension.
+   - If the dimension is in DIMENSION_SKIP → confirmed absent from diff, no action needed.
 
-   If any dimension is present in the diff but no reviewer confirmed it was checked, **spawn a follow-up reviewer** scoped to the uncovered dimension. Do not report complete with unreviewed dimensions — either review them or confirm they are absent from the diff.
+   Do not report complete with unreviewed dimensions — either review them or confirm they are absent from the diff.
 
 After synthesizing, write the consolidated report to `<TN_DIR>/THERMO-NUKE-REVIEW.md` using the Write tool. This file is the single canonical output of the review — the user should not need to ask for it.
 
