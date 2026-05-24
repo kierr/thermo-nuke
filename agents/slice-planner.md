@@ -50,16 +50,21 @@ Determine the base commit:
    - `vendor/data/`
    - Generated files (schema.rb, lock files, etc.)
 
-6. **Coverage dimension check.** Ensure the slice plan addresses all mandatory coverage dimensions. Each dimension must have at least one slice covering it, or be explicitly documented in `DIMENSION_SKIP` with justification. This is the authoritative definition of the dimension set — the orchestrator and reviewer reference this list.
+6. **Coverage dimension check.** Ensure the slice plan addresses all mandatory coverage dimensions. Each dimension must have at least one slice covering it, or be explicitly documented in `DIMENSION_SKIP` with justification. This is the authoritative definition of the dimension set — the orchestrator and reviewer use these exact tokens.
 
-   Mandatory dimensions:
-   1. **Application code quality** — domain-sliced (always covered by main slices)
-   2. **Security** — injection points, PII flow, auth boundaries, credential handling
-   3. **Dependency health** — lockfile changes, version conflicts, new/removed packages
-   4. **Database migration ordering** — sequencing, rollback safety, model-code coupling
-   5. **CI/CD** — workflow correctness, enforcement gates, script safety
-   6. **Infrastructure-as-code** — config files, build system, tooling configs
-   7. **Documentation/code drift** — comments match code, ADRs match implementation
+   Canonical dimension tokens (use these exact identifiers everywhere):
+
+   | Token | Scope |
+   |-------|-------|
+   | `application-code` | models, services, controllers, jobs, consumers — always covered by domain slices |
+   | `security` | injection points, PII flow, auth boundaries, credential handling |
+   | `dependencies` | lockfile changes, version conflicts, new/removed packages |
+   | `migrations` | sequencing, rollback safety, model-code coupling |
+   | `ci-cd` | workflow correctness, enforcement gates, script safety |
+   | `infrastructure` | config files, build system, tooling configs |
+   | `docs-drift` | comments match code, ADRs match implementation |
+
+   Use these tokens literally in COVERS and DIMENSION_SKIP output. Do not abbreviate, rename, or invent alternatives.
 
    If a dimension has no natural slice (e.g., no dependency changes in the diff), document it in `DIMENSION_SKIP` as `not present in diff`. If a dimension is present but not covered by any domain slice, either add a slice or expand an existing slice's focus to include it.
 
@@ -81,19 +86,19 @@ SLICE: <domain name>
 PATHS: <space-separated directory paths with trailing slashes or explicit file paths>
 LINES: ~<estimated total changed lines>
 FOCUS: <one-line review focus area>
-COVERS: <coverage dimensions this slice addresses, e.g. "application-code, security, migrations">
+COVERS: <canonical dimension tokens, e.g. "application-code security migrations">
 
 SLICE: <domain name>
 PATHS: <space-separated directory paths with trailing slashes or explicit file paths>
 LINES: ~<estimated total changed lines>
 FOCUS: <one-line review focus area>
-COVERS: <coverage dimensions this slice addresses>
+COVERS: <canonical dimension tokens>
 
 TOTAL_SLICES: <N>
 TOTAL_LINES: ~<total>
 TOTAL_FILES: <number of changed files in the diff>
 SKIP: <excluded paths with justification>
-DIMENSION_SKIP: <coverage dimensions not present in this diff, e.g. "ci/cd: no workflow changes; dependencies: no lockfile changes">
+DIMENSION_SKIP: <canonical tokens not present in this diff, e.g. "ci-cd: no workflow changes; dependencies: no lockfile changes">
 GAPS: <any files not covered by any slice, or "NONE">
 ```
 
