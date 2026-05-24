@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# pre-push hook: require version bump on every push to main.
+# Installed as .git/hooks/pre-push → ../../scripts/pre-push
+set -euo pipefail
+
+VERSION_FILE=".claude-plugin/plugin.json"
+
+extract_version() {
+  local sha="$1"
+  git show "${sha}:${VERSION_FILE}" 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['version'])" 2>/dev/null
+}
+
+# pre-push receives lines on stdin: <local ref> <local sha1> <remote ref> <remote sha1>
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  # Only gate pushes to main
+  remote_branch="${_remote_ref#refs/heads/}"
+  if [[ "$remote_branch" != "main" ]]; then
+    continue
+  fi
+
+  # If the remote doesn't have this ref yet (first push), skip
+  if [[ "$remote_sha" == "0000000000000000000000000000000000000000" ]]; then
+    continue
+  fi
+
+  local_version=$(extract_version "$local_sha") || true
+  remote_version=$(extract_version "$remote_sha") || true
+
+  if [[ -z "$local_version" ]]; then
+    echo "pre-push: ERROR — cannot read version from ${VERSION_FILE} at ${local_sha}" >&2
+    exit 1
+  fi
+
+  if [[ -z "$remote_version" ]]; then
+    echo "pre-push: ERROR — cannot read version from ${VERSION_FILE} at ${remote_sha}" >&2
+    exit 1
+  fi
+
+  if [[ "$local_version" == "$remote_version" ]]; then
+    echo "pre-push: ERROR — version not bumped (${local_version}). Bump the version in ${VERSION_FILE} before pushing." >&2
+    exit 1
+  fi
+
+  echo "pre-push: version ${remote_version} -> ${local_version}"
+done
