@@ -14,7 +14,7 @@ Extremely strict code quality reviews focused on structure, maintainability, and
 
 | Component | Type | Purpose |
 |---|---|---|
-| `/thermo-nuke:review` | Skill | The review rubric itself. Preloaded into agents. Can be invoked directly for a quick review. |
+| `/thermo-nuke:code-review` | Skill | The review rubric itself. Preloaded into agents. Can be invoked directly for a quick code review. |
 | `thermo-nuke:orchestrator` | Agent | Coordinates full reviews: assesses scope, slices large diffs, spawns parallel reviewers, synthesizes findings. |
 | `thermo-nuke:reviewer` | Agent | Reviews a specific scope or domain slice using the thermo-nuclear rubric. |
 | `thermo-nuke:slice-planner` | Agent | Analyzes a large diff and groups files into domain-cohesive slices for parallel review. |
@@ -24,7 +24,7 @@ Extremely strict code quality reviews focused on structure, maintainability, and
 
 ### Quick review of current changes
 ```
-/thermo-nuke:review
+/thermo-nuke:code-review
 ```
 Good for small scopes — a few files, recent commits, or working tree changes.
 

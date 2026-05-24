@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash, LSP
 model: inherit
 memory: project
 skills:
-  - review
+  - code-review
 ---
 
 # Thermo-Nuke Reviewer
