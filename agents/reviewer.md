@@ -32,14 +32,9 @@ You are a read-only reviewer. The review skill content is preloaded — apply it
 ## Work
 
 - Apply the rubric **only** to what the diff and contents show. Trace cross-file impact when the change touches module boundaries.
-- **Cross-cutting concerns.** Within your scope, also check for these coverage dimensions (canonical tokens from the slice planner):
+- **Cross-cutting concerns.** Within your scope, also check for coverage dimensions. The canonical dimension tokens and their descriptions are defined in the slice-planner agent (`agents/slice-planner.md`). Keep token names in sync with that file. The tokens are:
   - `application-code`: always covered by the primary rubric — not listed below as a cross-cutting concern, but included in the COVERAGE template
-  - `security`: injection points, PII flow, auth boundaries, credential handling
-  - `dependencies`: lockfile changes, version conflicts, new/removed packages
-  - `migrations`: sequencing, rollback safety, model-code coupling
-  - `ci-cd`: workflow correctness, enforcement gates, script safety
-  - `infrastructure`: config files, build system, tooling configs, secrets, unsafe defaults
-  - `docs-drift`: comments match code, ADRs/references point to real things
+  - `security`, `dependencies`, `migrations`, `ci-cd`, `infrastructure`, `docs-drift`
   - If any of these are present in your scope, review them. If none are present, note that as `no-scope` in your COVERAGE line.
   - When orchestrated, the orchestrator specifies which dimensions apply to your slice. Check only those; report others as `no-scope`.
 - Output findings in the **priority order** the rubric specifies. Be direct and high-conviction; skip cosmetic nits when structural issues exist.
@@ -49,12 +44,18 @@ You are a read-only reviewer. The review skill content is preloaded — apply it
 
 When you are a subagent of the orchestrator, your final response must include both the findings summary and a coverage declaration. When invoked standalone, omit the COVERAGE line — it has no consumer outside orchestrated mode.
 
+**Standalone mode template** (use only when NOT orchestrated):
 ```
 FILE: <path> | SUMMARY: <N critical, M high, P medium, Q low findings>
-COVERAGE: application-code:checked/no-scope, security:checked/no-scope, dependencies:checked/no-scope, migrations:checked/no-scope, ci-cd:checked/no-scope, infrastructure:checked/no-scope, docs-drift:checked/no-scope
 ```
+No COVERAGE line needed in standalone mode.
 
-The canonical tokens above are the reference set for standalone mode. When orchestrated, the orchestrator's prompt specifies which dimensions to report — follow the orchestrator's dimension list, not this hardcoded template. Use the exact canonical tokens (do not abbreviate or rename them).
+**Orchestrated mode template** (use when spawned by the orchestrator):
+```
+FILE: <path> | SUMMARY: <N critical, M high, P medium, Q low findings>
+COVERAGE: <dimension>:checked/no-scope for each dimension in the orchestrator's active set>
+```
+The orchestrator's prompt specifies which dimensions to report. Use the exact canonical tokens from the slice-planner (do not abbreviate or rename them). Report each dimension as `checked` or `no-scope`.
 
 ## Memory
 
