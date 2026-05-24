@@ -78,16 +78,7 @@ For each uncovered file:
 
 Also verify that **all coverage dimensions** from the active dimension set have at least one slice addressing them. For each dimension in DIMENSION_SKIP, confirm the justification is valid (the dimension genuinely is not present in this diff).
 
-Dimension reference (non-normative aid for gap-fill slice creation — authoritative tokens are in the planner output):
-- `application-code`: models, services, controllers, jobs, consumers
-- `security`: injection, PII, auth boundaries, credentials
-- `dependencies`: lockfile changes, version conflicts, new/removed packages
-- `migrations`: sequencing, rollback safety, model-code coupling
-- `ci-cd`: workflow correctness, enforcement gates, script safety
-- `infrastructure`: config files, build system, tooling configs
-- `docs-drift`: comments match code, ADRs match implementation
-
-For any dimension with no slice and no explicit exclusion, **create a gap-fill slice** for it. Gap-fill slices are lightweight — they scope only to the uncovered files/dimension and run alongside the domain slices.
+For any dimension with no slice and no explicit exclusion, **create a gap-fill slice** for it. Gap-fill slices are lightweight — they scope only to the uncovered files/dimension and run alongside the domain slices. Use the dimension descriptions from the planner output to understand the scope of each dimension.
 
 After this phase, the slice plan is **final and complete** — every file and every dimension is assigned. Proceed to Phase 3 with the updated plan.
 

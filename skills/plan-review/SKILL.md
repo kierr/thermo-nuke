@@ -1,6 +1,7 @@
 ---
 name: plan-review
 description: "Thermo-nuclear review for implementation plans. Apply the code quality rubric to a PLAN.md before code is written. Use for reviewing plans, phase plans, or proposed implementations to catch structural problems early."
+disable-model-invocation: true
 ---
 
 # Thermo-Nuke Plan Review

@@ -41,13 +41,13 @@ The orchestrator:
 
 ### Review a specific file or directory
 ```
-@"thermo-nuke:reviewer (agent)" review app/models/person/
+@thermo-nuke:reviewer review app/models/person/
 ```
 Or: "use thermo-nuke to review app/models/person/"
 
 ### Review a plan before coding
 ```
-@"thermo-nuke:plan-reviewer (agent)" .planning/phases/42/PLAN.md
+@thermo-nuke:plan-reviewer .planning/phases/42/PLAN.md
 ```
 Or: "thermo-nuke review the plan for phase 42"
 
@@ -57,7 +57,7 @@ Or: "thermo-nuke review the plan for phase 42"
 |---|---|---|
 | **Skill** | `/thermo-nuke:code-review` | Quick inline review in current session |
 | **Main-thread agent** | `claude --agent thermo-nuke:orchestrator` | Full dedicated review session |
-| **@-mention** | `@"thermo-nuke:orchestrator (agent)"` | Delegate from current session |
+| **@-mention** | `@thermo-nuke:orchestrator` | Delegate from current session |
 | **Natural language** | "run a thermo-nuclear review" | Claude auto-delegates to the orchestrator |
 
 ## Output
