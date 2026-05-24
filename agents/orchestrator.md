@@ -5,7 +5,7 @@ tools: Agent, Bash, Read, TaskCreate, TaskGet, TaskList, TaskUpdate, Write
 model: inherit
 color: red
 memory: project
-initialPrompt: First, create an isolated work directory by running `TN_DIR=$(mktemp -d -t thermo-nuke.XXXXXX) || { echo "FATAL: mktemp failed"; exit 1; }`. Store the returned path — you will use it as `TN_DIR` throughout this session for all reviewer output and the final consolidated report. Write the path to a file using the Write tool (e.g. write it to `$HOME/.thermo-nuke-session`) so you can recover it if context is truncated. Then run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
+initialPrompt: First, create an isolated work directory by running `TN_DIR=$(mktemp -d -t thermo-nuke.XXXXXX) || { echo "FATAL: mktemp failed"; exit 1; }`. Store the returned path — you will use it as `TN_DIR` throughout this session for all reviewer output and the final consolidated report. Then run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
 ---
 
 # Thermo-Nuke Orchestrator
@@ -25,7 +25,12 @@ In both modes, your workflow is the same.
 
 ### Phase 1: Assess Scope
 
-Run via Bash:
+Create the isolated work directory (idempotent — initialPrompt may have already created it):
+```bash
+TN_DIR="${TN_DIR:-$(mktemp -d -t thermo-nuke.XXXXXX)}" || { echo "FATAL: mktemp failed"; exit 1; }
+```
+
+Then assess the diff:
 ```bash
 git merge-base HEAD origin/main 2>/dev/null && echo "HAS_MERGE_BASE" || echo "NO_MERGE_BASE"
 git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -1
@@ -38,6 +43,14 @@ From the output, determine:
 - **BASE** — merge base commit or `origin/main`
 - **FILE_COUNT** — number of changed files (lines in --numstat output)
 - **TOTAL_LINES** — from --stat summary line
+- **FULL_PROJECT** — set to `true` if FILE_COUNT is 0 (clean main, no diff)
+
+**Full-project review** (FULL_PROJECT is true): when there is no diff to review, list all source files instead:
+```bash
+find . -type f ! -path './.git/*' ! -path './.claude/agent-memory/*' | sort > $TN_DIR/all-files.txt
+wc -l $(cat $TN_DIR/all-files.txt) | tail -1
+```
+Set FILE_COUNT to the number of source files and TOTAL_LINES to the total line count. Proceed with a single reviewer (full projects are typically small for plugins). The reviewer prompt should say "review all source files" rather than "review the diff."
 
 **Decision:**
 
@@ -60,14 +73,18 @@ The planner returns a structured list of slices with paths, line counts, focus a
 
 Parse the planner output to extract each slice's paths, focus, and COVERS dimensions. Also extract DIMENSION_SKIP (dimensions not present in this diff). Derive the **active dimension set** from the planner output: the union of all COVERS fields + DIMENSION_SKIP keys. This derived set is the single source of truth for Phases 2.5, 3, and 4 — do not use a hardcoded dimension list.
 
-`TN_DIR` (created at startup) is the isolated work directory for all reviewer output and the final report. This prevents collisions when multiple thermo-nuke runs execute concurrently on the same machine (different repos, different branches, or different agents).
+`TN_DIR` (created in Phase 1) is the isolated work directory for all reviewer output and the final report. This prevents collisions when multiple thermo-nuke runs execute concurrently on the same machine (different repos, different branches, or different agents).
 
 ### Phase 2.5: Coverage Gap Check
 
 Before spawning reviewers, verify that the slice plan covers the full diff. Run:
 
 ```bash
-git diff --name-only <BASE>...HEAD | sort > $TN_DIR/all-files.txt
+if [ "$FULL_PROJECT" = true ]; then
+  find . -type f ! -path './.git/*' ! -path './.claude/agent-memory/*' | sort > $TN_DIR/all-files.txt
+else
+  git diff --name-only <BASE>...HEAD | sort > $TN_DIR/all-files.txt
+fi
 ```
 
 Cross-reference every file in `all-files.txt` against the slice plan's PATHS. Identify any file not covered by any slice.
@@ -133,7 +150,7 @@ After all reviewers complete, synthesize from their Agent return values (the 150
    1. Structural code-quality regressions
    2. Missed opportunities for dramatic simplification / code-judo restructuring
    3. Spaghetti / branching complexity increases
-   4. Boundary / abstraction / type-contract problems
+   4. Boundary / abstraction / type-contract problems that make the code harder to reason about
    5. File-size and decomposition concerns
    6. Modularity and abstraction issues
    7. Legibility and maintainability concerns

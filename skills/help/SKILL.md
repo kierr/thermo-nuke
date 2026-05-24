@@ -62,11 +62,12 @@ Or: "thermo-nuke review the plan for phase 42"
 
 ## Output
 
+<!-- Priority ordering must stay in sync with skills/code-review/SKILL.md -->
 Findings organized by priority:
 1. Structural code-quality regressions
-2. Missed code-judo simplifications
-3. Spaghetti / branching complexity
-4. Boundary / abstraction / type-contract problems
+2. Missed opportunities for dramatic simplification / code-judo restructuring
+3. Spaghetti / branching complexity increases
+4. Boundary / abstraction / type-contract problems that make the code harder to reason about
 5. File-size and decomposition concerns
 6. Modularity and abstraction issues
 7. Legibility and maintainability concerns

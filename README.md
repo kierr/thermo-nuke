@@ -32,6 +32,12 @@ Good for small scopes — a few files, recent commits, or working tree changes.
 claude --agent thermo-nuke:orchestrator
 ```
 
+Or from within a session:
+
+```
+@thermo-nuke:orchestrator
+```
+
 The orchestrator assesses scope, slices large diffs into domain-cohesive groups, spawns parallel reviewers, and synthesizes findings into a consolidated report.
 
 ### Review a specific file or directory
@@ -89,12 +95,12 @@ If any dimension is present in the diff but no reviewer confirmed checking it, a
 
 ## Output
 
-Findings are organized by priority:
+Findings are organized by priority (must stay in sync with `skills/code-review/SKILL.md`):
 
 1. Structural code-quality regressions
-2. Missed opportunities for dramatic simplification (code judo)
+2. Missed opportunities for dramatic simplification / code-judo restructuring
 3. Spaghetti / branching complexity increases
-4. Boundary / abstraction / type-contract problems
+4. Boundary / abstraction / type-contract problems that make the code harder to reason about
 5. File-size and decomposition concerns
 6. Modularity and abstraction issues
 7. Legibility and maintainability concerns
