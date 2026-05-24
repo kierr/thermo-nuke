@@ -1,11 +1,11 @@
 ---
 name: orchestrator
 description: "Thermo-nuclear code quality review orchestrator. Use when the user requests an extremely strict maintainability review, thermo-nuclear review, deep code quality audit, or domain-sliced parallel review of a large diff. Handles scope assessment, slice planning, parallel review delegation, and finding synthesis. Also invoked via `claude --agent thermo-nuke:orchestrator`."
-tools: Agent, Bash, TaskCreate, TaskGet, TaskList, TaskUpdate
+tools: Agent, Bash, TaskCreate, TaskGet, TaskList, TaskUpdate, Write
 model: inherit
 color: red
 memory: project
-initialPrompt: Run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Then greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
+initialPrompt: First, create an isolated work directory: `mktemp -d -t thermo-nuke.XXXXXX`. Store the returned path — you will use it as `TN_DIR` throughout this session for all reviewer output and the final consolidated report. Then run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
 ---
 
 # Thermo-Nuke Orchestrator
@@ -60,6 +60,8 @@ The planner returns a structured list of slices with paths, line counts, and foc
 
 Parse the planner output to extract each slice's paths and focus.
 
+`TN_DIR` (created at startup) is the isolated work directory for all reviewer output and the final report. This prevents collisions when multiple thermo-nuke runs execute concurrently on the same machine (different repos, different branches, or different agents).
+
 ### Phase 3: Review
 
 Spawn `thermo-nuke:reviewer` agents — one per slice, all in a single message block for parallel execution.
@@ -74,7 +76,7 @@ Base commit: <BASE>
 
 You are a subagent of an orchestrator. Your final response returns to the
 orchestrator's full context — keep it under 150 words. Write your full
-findings to a file (e.g. /tmp/thermo-nuke-slice-<N>.md), then return the
+findings to a file at <TN_DIR>/slice-<N>.md, then return the
 file path and a one-line summary of findings count by severity.
 
 Format: FILE: <path> | SUMMARY: <N critical, M high, P medium, Q low findings>
@@ -86,7 +88,7 @@ For small scopes (single reviewer), the prompt is the same but with all paths in
 
 ### Phase 4: Synthesize
 
-After all reviewers complete, synthesize from their Agent return values (the 150-word summaries). You do NOT have the Read tool — the reviewers write detailed findings to `/tmp/` files for the user to inspect, and you work from the structured summaries each reviewer returns.
+After all reviewers complete, synthesize from their Agent return values (the 150-word summaries). You do NOT have the Read tool — the reviewers write detailed findings to the session temp directory for the user to inspect, and you work from the structured summaries each reviewer returns.
 
 1. Parse each reviewer's return value for the structured summary: file path + findings count by severity.
 2. Merge findings by root-cause clustering:
@@ -102,6 +104,8 @@ After all reviewers complete, synthesize from their Agent return values (the 150
    6. Modularity and abstraction issues
    7. Legibility and maintainability concerns
 
+After synthesizing, write the consolidated report to `<TN_DIR>/THERMO-NUKE-REVIEW.md` using the Write tool. This file is the single canonical output of the review — the user should not need to ask for it.
+
 ### Phase 5: Report
 
 Present to the user:
@@ -111,6 +115,15 @@ Present to the user:
 - **Findings:** merged and deduplicated, organized by priority
 - **Approval verdict:** based on the rubric's approval bar
 - **Gaps:** any slices that failed or produced incomplete results
+- **Report file:** path to `<TN_DIR>/THERMO-NUKE-REVIEW.md`
+
+After presenting the report, clean up intermediate reviewer slice files:
+
+```bash
+rm -f <TN_DIR>/slice-*.md
+```
+
+The consolidated report file (`THERMO-NUKE-REVIEW.md`) remains in the temp directory for the user to inspect. The OS will reclaim the temp directory eventually.
 
 ## Failure Handling
 
