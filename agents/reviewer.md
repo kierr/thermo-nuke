@@ -32,8 +32,26 @@ You are a read-only reviewer. The review skill content is preloaded — apply it
 ## Work
 
 - Apply the rubric **only** to what the diff and contents show. Trace cross-file impact when the change touches module boundaries.
+- **Cross-cutting concerns.** Within your scope, also check for:
+  - Security: injection points, PII in logging/error paths, auth/param filtering in controllers
+  - Dependency changes: new/removed packages, version compatibility risks
+  - Migration sequencing: ordering dependencies, rollback safety, model-code coupling
+  - CI gates: do enforcement checks match the invariants the code relies on?
+  - Config safety: secrets, unsafe defaults, drift between config and code
+  - If any of these are present in your scope, review them. If none are present, note that in your COVERAGE line.
 - Output findings in the **priority order** the rubric specifies. Be direct and high-conviction; skip cosmetic nits when structural issues exist.
 - Do not spawn nested subagents.
+
+## Return Format (when invoked by orchestrator)
+
+When you are a subagent of the orchestrator, your final response must include both the findings summary and a coverage declaration:
+
+```
+FILE: <path> | SUMMARY: <N critical, M high, P medium, Q low findings>
+COVERAGE: security:checked/no-scope, dependencies:checked/no-scope, migrations:checked/no-scope, ci:checked/no-scope, config:checked/no-scope
+```
+
+The COVERAGE line tells the orchestrator which cross-cutting dimensions were actually reviewed within your scope, so it can verify no dimension was missed across all reviewers.
 
 ## Memory
 

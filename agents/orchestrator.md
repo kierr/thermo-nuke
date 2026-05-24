@@ -56,11 +56,39 @@ Agent(
 )
 ```
 
-The planner returns a structured list of slices with paths, line counts, and focus areas.
+The planner returns a structured list of slices with paths, line counts, focus areas, and coverage dimensions.
 
 Parse the planner output to extract each slice's paths and focus.
 
 `TN_DIR` (created at startup) is the isolated work directory for all reviewer output and the final report. This prevents collisions when multiple thermo-nuke runs execute concurrently on the same machine (different repos, different branches, or different agents).
+
+### Phase 2.5: Coverage Gap Check
+
+Before spawning reviewers, verify that the slice plan covers the full diff. Run:
+
+```bash
+git diff --name-only <BASE>...HEAD | sort > $TN_DIR/all-files.txt
+```
+
+Cross-reference every file in `all-files.txt` against the slice plan's PATHS. Identify any file not covered by any slice.
+
+For each uncovered file:
+- If it falls under the planner's SKIP exclusions (agent state dirs, generated files, RBI shims), confirm the exclusion is justified — document it in the report.
+- If it should have been covered, **add it to the slice plan** — either merge it into the nearest existing slice or create a new gap-fill slice.
+
+Also verify that **all coverage dimensions** from the planner output have at least one slice addressing them. The mandatory dimensions are:
+
+1. Application code quality (domain-sliced) — always covered by the main slices
+2. Security: injection points, PII flow, auth boundaries, credential handling
+3. Dependency health: lockfile changes, version conflicts, new/removed packages
+4. Database migration ordering: sequencing, rollback safety, model-code coupling
+5. CI/CD: workflow correctness, enforcement gates, script safety
+6. Infrastructure-as-code: config files, build system, tooling configs
+7. Documentation/code drift: comments match code, ADRs match implementation
+
+For any dimension with no slice and no explicit exclusion, **create a gap-fill slice** for it. Gap-fill slices are lightweight — they scope only to the uncovered files/dimension and run alongside the domain slices.
+
+After this phase, the slice plan is **final and complete** — every file and every dimension is assigned. Proceed to Phase 3 with the updated plan.
 
 ### Phase 3: Review
 
@@ -74,12 +102,20 @@ Focus: <FOCUS>
 
 Base commit: <BASE>
 
+Cross-cutting concerns to check within your scope:
+- Security: injection points, PII in logging/error paths, auth/param filtering
+- Dependency changes: new/removed packages, version compatibility
+- Migration sequencing: ordering, rollback safety, model-code coupling
+- CI gates: do enforcement checks match the invariants the code relies on?
+- Config safety: secrets, unsafe defaults, drift between config and code
+
 You are a subagent of an orchestrator. Your final response returns to the
 orchestrator's full context — keep it under 150 words. Write your full
 findings to a file at <TN_DIR>/slice-<N>.md, then return the
 file path and a one-line summary of findings count by severity.
 
 Format: FILE: <path> | SUMMARY: <N critical, M high, P medium, Q low findings>
+COVERAGE: <list which cross-cutting dimensions were present in scope and whether they were checked>
 ```
 
 For small scopes (single reviewer), the prompt is the same but with all paths included.
@@ -90,7 +126,7 @@ For small scopes (single reviewer), the prompt is the same but with all paths in
 
 After all reviewers complete, synthesize from their Agent return values (the 150-word summaries). You do NOT have the Read tool — the reviewers write detailed findings to the session temp directory for the user to inspect, and you work from the structured summaries each reviewer returns.
 
-1. Parse each reviewer's return value for the structured summary: file path + findings count by severity.
+1. Parse each reviewer's return value for the structured summary: file path + findings count by severity + COVERAGE line.
 2. Merge findings by root-cause clustering:
    - Group findings referencing the same files or behavioral gap.
    - When multiple reviewers flag the same root cause, keep the finding with strongest evidence as primary.
@@ -103,6 +139,16 @@ After all reviewers complete, synthesize from their Agent return values (the 150
    5. File-size and decomposition concerns
    6. Modularity and abstraction issues
    7. Legibility and maintainability concerns
+4. **Coverage verification.** Before writing the report, confirm every cross-cutting dimension was actually reviewed by at least one reviewer. Check the COVERAGE lines from reviewer returns against the mandatory dimensions:
+   - [ ] Raw SQL / injection points scanned
+   - [ ] PII flow through logging/error paths checked
+   - [ ] All controllers checked for auth + param filtering
+   - [ ] Migration dependencies verified (not just individual correctness)
+   - [ ] CI gates match the invariants the code relies on
+   - [ ] Dependency changes audited for compatibility
+   - [ ] Config files checked for secrets / unsafe defaults
+
+   If any dimension is present in the diff but no reviewer confirmed it was checked, **spawn a follow-up reviewer** scoped to the uncovered dimension. Do not report complete with unreviewed dimensions — either review them or confirm they are absent from the diff.
 
 After synthesizing, write the consolidated report to `<TN_DIR>/THERMO-NUKE-REVIEW.md` using the Write tool. This file is the single canonical output of the review — the user should not need to ask for it.
 
@@ -114,7 +160,7 @@ Present to the user:
 - **Reviewers:** count, how many slices
 - **Findings:** merged and deduplicated, organized by priority
 - **Approval verdict:** based on the rubric's approval bar
-- **Gaps:** any slices that failed or produced incomplete results
+- **Coverage gaps:** dimensions not reviewed, files not assigned to any reviewer (from Phase 2.5 and Phase 4 verification), and any reviewer failures
 - **Report file:** path to `<TN_DIR>/THERMO-NUKE-REVIEW.md`
 
 The consolidated report file (`THERMO-NUKE-REVIEW.md`) remains in the temp directory for the user to inspect. Intermediate slice files are left in place in case the consolidated report is incomplete — the OS will reclaim the temp directory eventually.

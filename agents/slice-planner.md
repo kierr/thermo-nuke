@@ -50,7 +50,25 @@ Determine the base commit:
    - `vendor/data/`
    - Generated files (schema.rb, lock files, etc.)
 
-6. **Memory check.** Read existing project-scoped memory for domain boundary knowledge from previous runs. Apply known boundaries when grouping.
+6. **Coverage dimension check.** Ensure the slice plan addresses all mandatory coverage dimensions. Each dimension must have at least one slice covering it, or be explicitly documented in `DIMENSION_SKIP` with justification.
+
+   Mandatory dimensions:
+   1. **Application code quality** — domain-sliced (always covered by main slices)
+   2. **Security** — injection points, PII flow, auth boundaries, credential handling
+   3. **Dependency health** — lockfile changes, version conflicts, new/removed packages
+   4. **Database migration ordering** — sequencing, rollback safety, model-code coupling
+   5. **CI/CD** — workflow correctness, enforcement gates, script safety
+   6. **Infrastructure-as-code** — config files, build system, tooling configs
+   7. **Documentation/code drift** — comments match code, ADRs match implementation
+
+   If a dimension has no natural slice (e.g., no dependency changes in the diff), document it in `DIMENSION_SKIP` as `not present in diff`. If a dimension is present but not covered by any domain slice, either add a slice or expand an existing slice's focus to include it.
+
+7. **Gap identification.** After grouping, compare every file from the `--numstat` output against the union of all slice PATHS. Any file not covered is a gap. For each gap:
+   - If it matches an exclusion rule, confirm and include in `SKIP` with the rule.
+   - If it should be covered, assign it to the nearest slice or create an additional slice.
+   - Never silently drop a changed file.
+
+8. **Memory check.** Read existing project-scoped memory for domain boundary knowledge from previous runs. Apply known boundaries when grouping.
 
 ## Output Format
 
@@ -63,15 +81,20 @@ SLICE: <domain name>
 PATHS: <space-separated directory paths with trailing slashes or explicit file paths>
 LINES: ~<estimated total changed lines>
 FOCUS: <one-line review focus area>
+COVERS: <coverage dimensions this slice addresses, e.g. "application-code, security, migrations">
 
 SLICE: <domain name>
 PATHS: <space-separated directory paths with trailing slashes or explicit file paths>
 LINES: ~<estimated total changed lines>
 FOCUS: <one-line review focus area>
+COVERS: <coverage dimensions this slice addresses>
 
 TOTAL_SLICES: <N>
 TOTAL_LINES: ~<total>
-SKIP: <excluded paths>
+TOTAL_FILES: <number of changed files in the diff>
+SKIP: <excluded paths with justification>
+DIMENSION_SKIP: <coverage dimensions not present in this diff, e.g. "ci/cd: no workflow changes; dependencies: no lockfile changes">
+GAPS: <any files not covered by any slice, or "NONE">
 ```
 
 ## Memory
