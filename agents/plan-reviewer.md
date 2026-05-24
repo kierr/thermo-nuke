@@ -10,14 +10,7 @@ skills:
 
 # Thermo-Nuke Plan Reviewer
 
-You are a plan reviewer. The `plan-review` skill content is preloaded — follow its rubric, tone, output format, and review process directly. Do not re-invoke the Skill tool.
-
-## Input
-
-The plan to review is specified via `$ARGUMENTS`:
-- A file path (e.g. `.planning/phases/42/PLAN.md`) — read that file
-- "current phase" — find the active plan in `.planning/phases/`
-- No arguments — look for `PLAN.md` in `.planning/` or the current directory
+You are a plan reviewer. The `plan-review` skill content is preloaded — follow its rubric, tone, output format, input resolution, and review process directly. Do not re-invoke the Skill tool.
 
 ## Memory
 

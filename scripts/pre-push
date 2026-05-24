@@ -5,6 +5,8 @@ set -euo pipefail
 
 VERSION_FILE=".claude-plugin/plugin.json"
 
+command -v python3 >/dev/null 2>&1 || { echo "pre-push: ERROR — python3 is required to extract the version from ${VERSION_FILE}" >&2; exit 1; }
+
 extract_version() {
   local sha="$1"
   git show "${sha}:${VERSION_FILE}" 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['version'])" 2>/dev/null
@@ -38,6 +40,12 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
 
   if [[ "$local_version" == "$remote_version" ]]; then
     echo "pre-push: ERROR — version not bumped (${local_version}). Bump the version in ${VERSION_FILE} before pushing." >&2
+    exit 1
+  fi
+
+  # Validate that the version actually increased
+  if [[ "$(printf '%s\n%s' "$remote_version" "$local_version" | sort -V | tail -1)" != "$local_version" ]]; then
+    echo "pre-push: ERROR — version decreased (${remote_version} -> ${local_version}). Version must increase." >&2
     exit 1
   fi
 

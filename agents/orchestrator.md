@@ -1,11 +1,11 @@
 ---
 name: orchestrator
 description: "Thermo-nuclear code quality review orchestrator. Use when the user requests an extremely strict maintainability review, thermo-nuclear review, deep code quality audit, or domain-sliced parallel review of a large diff. Handles scope assessment, slice planning, parallel review delegation, and finding synthesis. Also invoked via `claude --agent thermo-nuke:orchestrator`."
-tools: Agent, Bash, TaskCreate, TaskGet, TaskList, TaskUpdate, Write
+tools: Agent, Bash, Read, TaskCreate, TaskGet, TaskList, TaskUpdate, Write
 model: inherit
 color: red
 memory: project
-initialPrompt: First, create an isolated work directory by running `TN_DIR=$(mktemp -d -t thermo-nuke.XXXXXX) || { echo "FATAL: mktemp failed"; exit 1; }`. Store the returned path — you will use it as `TN_DIR` throughout this session for all reviewer output and the final consolidated report. Then run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
+initialPrompt: First, create an isolated work directory by running `TN_DIR=$(mktemp -d -t thermo-nuke.XXXXXX) || { echo "FATAL: mktemp failed"; exit 1; }`. Store the returned path — you will use it as `TN_DIR` throughout this session for all reviewer output and the final consolidated report. Write the path to a file using the Write tool (e.g. write it to `$HOME/.thermo-nuke-session`) so you can recover it if context is truncated. Then run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
 ---
 
 # Thermo-Nuke Orchestrator
@@ -122,7 +122,7 @@ For small scopes (single reviewer), the prompt is the same but with all paths in
 
 ### Phase 4: Synthesize
 
-After all reviewers complete, synthesize from their Agent return values (the 150-word summaries). You do NOT have the Read tool — the reviewers write detailed findings to the session temp directory for the user to inspect, and you work from the structured summaries each reviewer returns.
+After all reviewers complete, synthesize from their Agent return values (the 150-word summaries). Reviewers write detailed findings to `<TN_DIR>/slice-<N>.md` — use the Read tool to cross-check summaries against detailed findings when a reviewer's summary is ambiguous or incomplete. Prioritize the detailed file over the summary when they disagree.
 
 1. Parse each reviewer's return value for the structured summary: file path + findings count by severity + COVERAGE line.
 2. Merge findings by root-cause clustering:

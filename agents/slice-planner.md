@@ -61,7 +61,7 @@ Determine the base commit:
    | `dependencies` | lockfile changes, version conflicts, new/removed packages |
    | `migrations` | sequencing, rollback safety, model-code coupling |
    | `ci-cd` | workflow correctness, enforcement gates, script safety |
-   | `infrastructure` | config files, build system, tooling configs |
+   | `infrastructure` | config files, build system, tooling configs, secrets, unsafe defaults |
    | `docs-drift` | comments match code, ADRs match implementation |
 
    Use these tokens literally in COVERS and DIMENSION_SKIP output. Do not abbreviate, rename, or invent alternatives.
@@ -104,4 +104,4 @@ GAPS: <any files not covered by any slice, or "NONE">
 
 ## Memory
 
-Write project-scoped memory with domain boundary insights discovered during this analysis. Future runs benefit from knowing the project's domain structure.
+Save project-scoped memory with domain boundary insights discovered during this analysis (the `memory: project` frontmatter handles write access). Future runs benefit from knowing the project's domain structure.

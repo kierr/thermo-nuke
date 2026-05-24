@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: "Thermo-nuclear code quality reviewer. Reviews a specific scope or domain slice using the preloaded review rubric. Spawned by the thermo-nuke orchestrator, or invoked directly for single-scope reviews."
-tools: Read, Grep, Glob, Bash, LSP
+tools: Read, Grep, Glob, Bash, LSP, Write
 model: inherit
 memory: project
 skills:
