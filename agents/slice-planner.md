@@ -50,7 +50,7 @@ Determine the base commit:
    - `vendor/data/`
    - Generated files (schema.rb, lock files, etc.)
 
-6. **Coverage dimension check.** Ensure the slice plan addresses all mandatory coverage dimensions. Each dimension must have at least one slice covering it, or be explicitly documented in `DIMENSION_SKIP` with justification.
+6. **Coverage dimension check.** Ensure the slice plan addresses all mandatory coverage dimensions. Each dimension must have at least one slice covering it, or be explicitly documented in `DIMENSION_SKIP` with justification. This is the authoritative definition of the dimension set — the orchestrator and reviewer reference this list.
 
    Mandatory dimensions:
    1. **Application code quality** — domain-sliced (always covered by main slices)

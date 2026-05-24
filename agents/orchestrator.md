@@ -76,7 +76,7 @@ For each uncovered file:
 - If it falls under the planner's SKIP exclusions (agent state dirs, generated files, RBI shims), confirm the exclusion is justified — document it in the report.
 - If it should have been covered, **add it to the slice plan** — either merge it into the nearest existing slice or create a new gap-fill slice.
 
-Also verify that **all coverage dimensions** from the planner output have at least one slice addressing them. The mandatory dimensions are:
+Also verify that **all coverage dimensions** from the planner output have at least one slice addressing them. The authoritative dimension set is defined in the slice-planner agent — maintain consistency. The mandatory dimensions are:
 
 1. Application code quality (domain-sliced) — always covered by the main slices
 2. Security: injection points, PII flow, auth boundaries, credential handling
@@ -108,6 +108,7 @@ Cross-cutting concerns to check within your scope:
 - Migration sequencing: ordering, rollback safety, model-code coupling
 - CI gates: do enforcement checks match the invariants the code relies on?
 - Config safety: secrets, unsafe defaults, drift between config and code
+- Docs drift: do comments match the code? Do ADRs/references still point to real things?
 
 You are a subagent of an orchestrator. Your final response returns to the
 orchestrator's full context — keep it under 150 words. Write your full
@@ -139,7 +140,7 @@ After all reviewers complete, synthesize from their Agent return values (the 150
    5. File-size and decomposition concerns
    6. Modularity and abstraction issues
    7. Legibility and maintainability concerns
-4. **Coverage verification.** Before writing the report, confirm every cross-cutting dimension was actually reviewed by at least one reviewer. Check the COVERAGE lines from reviewer returns against the mandatory dimensions:
+4. **Coverage verification.** Before writing the report, confirm every cross-cutting dimension was actually reviewed by at least one reviewer. Check the COVERAGE lines from reviewer returns against the 7 mandatory dimensions (authoritative list in slice-planner agent):
    - [ ] Raw SQL / injection points scanned
    - [ ] PII flow through logging/error paths checked
    - [ ] All controllers checked for auth + param filtering
@@ -147,6 +148,7 @@ After all reviewers complete, synthesize from their Agent return values (the 150
    - [ ] CI gates match the invariants the code relies on
    - [ ] Dependency changes audited for compatibility
    - [ ] Config files checked for secrets / unsafe defaults
+   - [ ] Comments match code, ADRs/references point to real things
 
    If any dimension is present in the diff but no reviewer confirmed it was checked, **spawn a follow-up reviewer** scoped to the uncovered dimension. Do not report complete with unreviewed dimensions — either review them or confirm they are absent from the diff.
 
