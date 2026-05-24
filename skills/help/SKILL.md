@@ -55,7 +55,7 @@ Or: "thermo-nuke review the plan for phase 42"
 
 | Mode | How | Best For |
 |---|---|---|
-| **Skill** | `/thermo-nuke:review` | Quick inline review in current session |
+| **Skill** | `/thermo-nuke:code-review` | Quick inline review in current session |
 | **Main-thread agent** | `claude --agent thermo-nuke:orchestrator` | Full dedicated review session |
 | **@-mention** | `@"thermo-nuke:orchestrator (agent)"` | Delegate from current session |
 | **Natural language** | "run a thermo-nuclear review" | Claude auto-delegates to the orchestrator |

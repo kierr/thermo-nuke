@@ -5,7 +5,7 @@ tools: Agent, Bash, TaskCreate, TaskGet, TaskList, TaskUpdate, Write
 model: inherit
 color: red
 memory: project
-initialPrompt: First, create an isolated work directory: `mktemp -d -t thermo-nuke.XXXXXX`. Store the returned path — you will use it as `TN_DIR` throughout this session for all reviewer output and the final consolidated report. Then run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
+initialPrompt: First, create an isolated work directory by running `TN_DIR=$(mktemp -d -t thermo-nuke.XXXXXX) || { echo "FATAL: mktemp failed"; exit 1; }`. Store the returned path — you will use it as `TN_DIR` throughout this session for all reviewer output and the final consolidated report. Then run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
 ---
 
 # Thermo-Nuke Orchestrator
@@ -117,13 +117,7 @@ Present to the user:
 - **Gaps:** any slices that failed or produced incomplete results
 - **Report file:** path to `<TN_DIR>/THERMO-NUKE-REVIEW.md`
 
-After presenting the report, clean up intermediate reviewer slice files:
-
-```bash
-rm -f <TN_DIR>/slice-*.md
-```
-
-The consolidated report file (`THERMO-NUKE-REVIEW.md`) remains in the temp directory for the user to inspect. The OS will reclaim the temp directory eventually.
+The consolidated report file (`THERMO-NUKE-REVIEW.md`) remains in the temp directory for the user to inspect. Intermediate slice files are left in place in case the consolidated report is incomplete — the OS will reclaim the temp directory eventually.
 
 ## Failure Handling
 
