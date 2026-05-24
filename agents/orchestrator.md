@@ -5,6 +5,7 @@ tools: Agent, Bash, TaskCreate, TaskGet, TaskList, TaskUpdate
 model: inherit
 color: red
 memory: project
+initialPrompt: Run `git branch --show-current`, `git status --short`, and `git diff --stat $(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)...HEAD 2>/dev/null | tail -5` to understand the current scope. Then greet the user and present the available review scopes based on what you find (e.g. full branch diff, unpushed commits only, specific directories, current working tree, or a PR). Ask which scope they want to review.
 ---
 
 # Thermo-Nuke Orchestrator
