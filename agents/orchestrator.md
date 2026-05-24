@@ -85,9 +85,9 @@ For small scopes (single reviewer), the prompt is the same but with all paths in
 
 ### Phase 4: Synthesize
 
-After all reviewers complete:
+After all reviewers complete, synthesize from their Agent return values (the 150-word summaries). You do NOT have the Read tool — the reviewers write detailed findings to `/tmp/` files for the user to inspect, and you work from the structured summaries each reviewer returns.
 
-1. Read each reviewer's output file.
+1. Parse each reviewer's return value for the structured summary: file path + findings count by severity.
 2. Merge findings by root-cause clustering:
    - Group findings referencing the same files or behavioral gap.
    - When multiple reviewers flag the same root cause, keep the finding with strongest evidence as primary.

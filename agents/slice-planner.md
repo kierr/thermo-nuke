@@ -56,14 +56,16 @@ Determine the base commit:
 
 Return structured key-value pairs — terse, parseable. One section per slice:
 
+Use explicit directory paths with trailing slashes (e.g. `app/models/person/`) or specific file paths. Do NOT use glob patterns — they don't work with `git diff -- <paths>`. Derived from the `--numstat` output filepath column.
+
 ```
 SLICE: <domain name>
-PATHS: <space-separated glob patterns>
+PATHS: <space-separated directory paths with trailing slashes or explicit file paths>
 LINES: ~<estimated total changed lines>
 FOCUS: <one-line review focus area>
 
 SLICE: <domain name>
-PATHS: <space-separated glob patterns>
+PATHS: <space-separated directory paths with trailing slashes or explicit file paths>
 LINES: ~<estimated total changed lines>
 FOCUS: <one-line review focus area>
 
