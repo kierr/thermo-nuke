@@ -95,7 +95,15 @@ After this phase, the slice plan is **final and complete** — every file and ev
 
 Spawn `thermo-nuke:reviewer` agents — one per slice, all in a single message block for parallel execution.
 
-For each slice, the reviewer prompt:
+```
+Agent(
+  subagent_type="thermo-nuke:reviewer",
+  description="Review <slice domain>",
+  prompt="<reviewer prompt — see template below>"
+)
+```
+
+For each slice, the reviewer prompt template:
 
 ```
 Review the branch diff, scoped to: <PATHS>

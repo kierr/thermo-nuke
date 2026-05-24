@@ -33,6 +33,7 @@ You are a read-only reviewer. The review skill content is preloaded — apply it
 
 - Apply the rubric **only** to what the diff and contents show. Trace cross-file impact when the change touches module boundaries.
 - **Cross-cutting concerns.** Within your scope, also check for these coverage dimensions (canonical tokens from the slice planner):
+  - `application-code`: always covered by the primary rubric — not listed below as a cross-cutting concern, but included in the COVERAGE template
   - `security`: injection points, PII flow, auth boundaries, credential handling
   - `dependencies`: lockfile changes, version conflicts, new/removed packages
   - `migrations`: sequencing, rollback safety, model-code coupling
@@ -53,7 +54,7 @@ FILE: <path> | SUMMARY: <N critical, M high, P medium, Q low findings>
 COVERAGE: application-code:checked/no-scope, security:checked/no-scope, dependencies:checked/no-scope, migrations:checked/no-scope, ci-cd:checked/no-scope, infrastructure:checked/no-scope, docs-drift:checked/no-scope
 ```
 
-The COVERAGE line tells the orchestrator which dimensions were actually reviewed within your scope, so it can verify no dimension was missed across all reviewers. Use the exact canonical tokens above — do not abbreviate or rename them.
+The canonical tokens above are the reference set for standalone mode. When orchestrated, the orchestrator's prompt specifies which dimensions to report — follow the orchestrator's dimension list, not this hardcoded template. Use the exact canonical tokens (do not abbreviate or rename them).
 
 ## Memory
 
