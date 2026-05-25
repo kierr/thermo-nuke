@@ -1,5 +1,5 @@
 {
   "name": "thermo-nuke",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Thermo-nuclear code quality review. Extremely strict maintainability reviews with domain-sliced parallel orchestration for large PRs."
 }
