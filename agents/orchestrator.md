@@ -139,27 +139,74 @@ For small scopes (single reviewer), the prompt is the same but with all paths in
 
 ### Phase 4: Synthesize
 
-After all reviewers complete, synthesize from their Agent return values (the 150-word summaries). Reviewers write detailed findings to `<TN_DIR>/slice-<N>.md` — use the Read tool to cross-check summaries against detailed findings when a reviewer's summary is ambiguous or incomplete. Prioritize the detailed file over the summary when they disagree.
+After all reviewers complete, read every `<TN_DIR>/slice-<N>.md` file in full. Do not rely solely on the 150-word return summaries — they are lossy. The detailed slice files are the canonical finding source.
 
-1. Parse each reviewer's return value for the structured summary: file path + findings count by severity + COVERAGE line.
-2. Merge findings by root-cause clustering:
-   - Group findings referencing the same files or behavioral gap.
-   - When multiple reviewers flag the same root cause, keep the finding with strongest evidence as primary.
-   - Rank by severity, then by number of reviewers that flagged it.
-3. Output consolidated findings organized by the rubric's priority order:
-   1. Structural code-quality regressions
-   2. Missed opportunities for dramatic simplification / code-judo restructuring
-   3. Spaghetti / branching complexity increases
-   4. Boundary / abstraction / type-contract problems that make the code harder to reason about
-   5. File-size and decomposition concerns
-   6. Modularity and abstraction issues
-   7. Legibility and maintainability concerns
-4. **Coverage verification.** Before writing the report, confirm every dimension in the active dimension set was actually reviewed by at least one reviewer. Check the COVERAGE lines from reviewer returns — every dimension that is NOT in DIMENSION_SKIP must have at least one reviewer reporting `checked`. For each dimension:
-   - If any reviewer confirmed `checked` → dimension is covered.
-   - If all reviewers reported `no-scope` but the dimension is NOT in DIMENSION_SKIP → contradiction. Either the planner missed it or the reviewers missed it. **Spawn a follow-up reviewer** scoped to that dimension.
-   - If the dimension is in DIMENSION_SKIP → confirmed absent from diff, no action needed.
+#### Step 1: Extract finding index
 
-   Do not report complete with unreviewed dimensions — either review them or confirm they are absent from the diff.
+For each slice file, extract every finding into a structured index. Each finding must have:
+- A unique ID (e.g., `S3-H4` for slice 3, high finding 4)
+- The severity label from the slice file
+- A one-line summary
+- The file reference(s)
+
+Write this index to `<TN_DIR>/finding-index.md` with one line per finding:
+```
+S1-C1 | CRITICAL | Registerable identity_id unbound in rescue | registerable.rb:130
+S1-H1 | HIGH | Merge execute N+1 WorldObject | execute.rb:316
+...
+```
+
+#### Step 2: Cluster and deduplicate
+
+Merge findings by root-cause clustering:
+- Group findings referencing the same files or behavioral gap.
+- When multiple reviewers flag the same root cause, keep the finding with strongest evidence as primary.
+- Rank by severity, then by number of reviewers that flagged it.
+
+Assign each consolidated finding a report ID (C1, C2, H1, H2, M1, L1, etc.) and maintain a mapping from each source finding ID to its consolidated report ID in `<TN_DIR>/finding-mapping.md`:
+```
+S1-C1 → C6
+S1-H1 → H1
+S3-H4 → M3.5
+...
+```
+
+#### Step 3: Completeness invariant (MANDATORY)
+
+Before writing the consolidated report, verify that **every finding from every slice file has a mapping** in `finding-mapping.md`. Run:
+```bash
+for i in $(seq 1 <NUM_SLICES>): do
+  echo "Slice $i: $(grep -c '^###' $TN_DIR/slice-$i.md) findings"
+done
+echo "Mapped: $(wc -l < $TN_DIR/finding-mapping.md)"
+```
+
+If the mapped count is less than the total findings count, **stop and find the missing findings before proceeding**. Do not write the report with unmapped findings. Common causes:
+- Finding didn't fit a cluster → it still must appear as a standalone entry.
+- Finding was under a heading but labeled differently → extract by actual `###` markers, not by section headers.
+- Finding was a "revised" or "withdrawn" entry → include it with a note, or explicitly mark it withdrawn in the mapping.
+
+**This is a hard gate.** No report may be written until finding count from slices equals finding count in mapping. Violating this is the same as silently ignoring a reviewer — which is explicitly forbidden in the Failure Handling section.
+
+#### Step 4: Organize and write
+
+Output consolidated findings organized by the rubric's priority order:
+1. Structural code-quality regressions
+2. Missed opportunities for dramatic simplification / code-judo restructuring
+3. Spaghetti / branching complexity increases
+4. Boundary / abstraction / type-contract problems that make the code harder to reason about
+5. File-size and decomposition concerns
+6. Modularity and abstraction issues
+7. Legibility and maintainability concerns
+
+#### Step 5: Dimension coverage verification
+
+Confirm every dimension in the active dimension set was actually reviewed by at least one reviewer. Check the COVERAGE lines from reviewer returns — every dimension that is NOT in DIMENSION_SKIP must have at least one reviewer reporting `checked`. For each dimension:
+- If any reviewer confirmed `checked` → dimension is covered.
+- If all reviewers reported `no-scope` but the dimension is NOT in DIMENSION_SKIP → contradiction. Either the planner missed it or the reviewers missed it. **Spawn a follow-up reviewer** scoped to that dimension.
+- If the dimension is in DIMENSION_SKIP → confirmed absent from diff, no action needed.
+
+Do not report complete with unreviewed dimensions — either review them or confirm they are absent from the diff.
 
 After synthesizing, write the consolidated report to `<TN_DIR>/THERMO-NUKE-REVIEW.md` using the Write tool. This file is the single canonical output of the review — the user should not need to ask for it.
 
@@ -182,12 +229,14 @@ The consolidated report file (`THERMO-NUKE-REVIEW.md`) remains in the temp direc
 - If a reviewer fails, note the gap in the report and continue with remaining slices.
 - If a reviewer returns incomplete output, spawn a follow-up reviewer scoped to the specific gap.
 - Never silently ignore a reviewer failure.
+- **Never silently drop a finding.** If the finding index count doesn't match the mapping count, stop and reconcile. Every `###` in every slice file must appear in the final report or be explicitly marked withdrawn in the mapping with a reason. Dropping findings during clustering is a process violation — the clustering step must be additive (grouping), never subtractive (omitting).
 
 ## Completion
 
 Before reporting done, verify:
 
 - All reviewers completed or failures documented
-- Findings synthesized and deduplicated
+- **Finding completeness invariant: every `###` finding in every `slice-*.md` has a mapping in `finding-mapping.md`. Zero unmapped findings.**
+- All findings appear in THERMO-NUKE-REVIEW.md (not just clustered highlights)
 - Report organized by the rubric's priority order
 - Task list up to date
