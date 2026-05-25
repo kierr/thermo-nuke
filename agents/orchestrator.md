@@ -124,6 +124,9 @@ Check each dimension per your agent definition's cross-cutting concerns guidance
 Only check dimensions that are present in your scope — if a dimension is not
 relevant, report it as no-scope in your COVERAGE line.
 
+DOMAIN_CHECKLIST: <DOMAIN_CHECKLIST from slice plan, or NONE>
+If not NONE, apply the domain-specific specialist checks from the review skill.
+
 You are a subagent of an orchestrator. Your final response returns to the
 orchestrator's full context — keep it under 150 words. Write your full
 findings to a file at <TN_DIR>/slice-<N>.md, then return the
@@ -159,9 +162,10 @@ S1-H1 | HIGH | Merge execute N+1 WorldObject | execute.rb:316
 #### Step 2: Cluster and deduplicate
 
 Merge findings by root-cause clustering:
-- Group findings referencing the same files or behavioral gap.
-- When multiple reviewers flag the same root cause, keep the finding with strongest evidence as primary.
-- Rank by severity, then by number of reviewers that flagged it.
+- **Same-root grouping.** Group findings referencing the same files or behavioral gap.
+- **Pattern-based grouping.** When the same pattern appears across multiple slices (e.g., `typed: false` in 6/10 slices, or fail-open auth in 5 handlers), group into a single consolidated finding listing all affected files and slices. The consolidated finding uses the strongest evidence as its primary description and notes all affected slices.
+- **Evidence aggregation.** When multiple reviewers flag the same root cause, keep the finding with strongest evidence as primary and note the corroborating source findings.
+- Rank by severity, then by number of source findings merged, then by pattern breadth (findings spanning more slices rank higher within the same severity).
 
 Assign each consolidated finding a report ID (C1, C2, H1, H2, M1, L1, etc.) and maintain a mapping from each source finding ID to its consolidated report ID in `<TN_DIR>/finding-mapping.md`:
 ```
@@ -175,8 +179,8 @@ S3-H4 → M3.5
 
 Before writing the consolidated report, verify that **every finding from every slice file has a mapping** in `finding-mapping.md`. Run:
 ```bash
-for i in $(seq 1 <NUM_SLICES>): do
-  echo "Slice $i: $(grep -c '^###' $TN_DIR/slice-$i.md) findings"
+for i in $(seq 1 <NUM_SLICES>); do
+  echo "Slice $i: $(grep '^###' $TN_DIR/slice-$i.md | grep -cv '^### POS-') findings"
 done
 echo "Mapped: $(wc -l < $TN_DIR/finding-mapping.md)"
 ```
@@ -187,6 +191,16 @@ If the mapped count is less than the total findings count, **stop and find the m
 - Finding was a "revised" or "withdrawn" entry → include it with a note, or explicitly mark it withdrawn in the mapping.
 
 **This is a hard gate.** No report may be written until finding count from slices equals finding count in mapping. Violating this is the same as silently ignoring a reviewer — which is explicitly forbidden in the Failure Handling section.
+
+#### Step 3.5: Extract positive observations (if any)
+
+Scan each slice file for a `## Positive Observations` section. Extract all `### POS-<N>:` entries into `<TN_DIR>/positive-observations.md` with source attribution:
+```
+S2-POS1 | Positive | T.unsafe removal in registerable.rb | registerable.rb:130
+S5-POS1 | Positive | Simplified auth flow from 7 branches to 2 | auth_handler.rb:45
+```
+
+These are NOT findings. They must NOT appear in `finding-mapping.md` or the finding index. They are collected here for inclusion in the final report under a separate section.
 
 #### Step 4: Organize and write
 
@@ -199,6 +213,15 @@ Output consolidated findings organized by the rubric's priority order:
 6. Modularity and abstraction issues
 7. Legibility and maintainability concerns
 
+#### Step 4.5: Synthesize cross-slice themes
+
+After organizing findings by rubric priority, extract cross-slice themes — systemic patterns spanning 3+ findings across 2+ slices. A theme reveals a root cause that no single finding captures fully. For each theme:
+- Clear descriptive name (e.g., "Fail-open auth: 5 handlers silently default to allow")
+- List of consolidated finding IDs it encompasses
+- Scope: how many slices, how many findings, how many files
+
+Themes appear in a dedicated section in the report (see report template below). They do NOT replace the priority-organized findings — they are an additional perspective showing the forest, not just the trees.
+
 #### Step 5: Dimension coverage verification
 
 Confirm every dimension in the active dimension set was actually reviewed by at least one reviewer. Check the COVERAGE lines from reviewer returns — every dimension that is NOT in DIMENSION_SKIP must have at least one reviewer reporting `checked`. For each dimension:
@@ -208,7 +231,38 @@ Confirm every dimension in the active dimension set was actually reviewed by at 
 
 Do not report complete with unreviewed dimensions — either review them or confirm they are absent from the diff.
 
-After synthesizing, write the consolidated report to `<TN_DIR>/THERMO-NUKE-REVIEW.md` using the Write tool. This file is the single canonical output of the review — the user should not need to ask for it.
+Write the consolidated report to `<TN_DIR>/THERMO-NUKE-REVIEW.md` using the Write tool. This file is the single canonical output of the review — the user should not need to ask for it. Use this exact section ordering:
+
+```markdown
+# Thermo-Nuclear Code Quality Review
+
+## Scope
+<files reviewed, lines changed, reviewers, slices>
+
+## Findings
+<consolidated findings by rubric priority, each with triage label>
+### C1: <title> [Fix immediately]
+### H1: <title> [Fix before merge]
+...
+
+## Cross-Slice Themes
+<themes from Step 4.5, or "No cross-slice themes identified">
+
+## Triage Summary
+<N Fix immediately | M Fix before merge | K Track>
+
+## Positive Observations
+<from positive-observations.md, or "None">
+
+## Dimension Coverage
+<each dimension: checked/no-scope>
+
+## Coverage Gaps
+<any unreviewed dimensions or files, or "None">
+
+## Approval Verdict
+<based on rubric approval bar>
+```
 
 ### Phase 5: Report
 
@@ -216,8 +270,29 @@ Present to the user:
 
 - **Scope:** files/paths reviewed, total lines changed
 - **Reviewers:** count, how many slices
-- **Findings:** merged and deduplicated, organized by priority
+- **Findings:** merged and deduplicated, organized by priority with triage labels
+- **Cross-slice themes:** systemic patterns identified across slices
+- **Triage summary:** counts per triage category
+- **Positive observations:** noteworthy structural improvements found
 - **Approval verdict:** based on the rubric's approval bar
+- **Triage:** assign each consolidated finding a triage label based on **severity + finding nature**, not severity alone:
+
+  | Triage | Criteria | Merge gate |
+  |--------|----------|------------|
+  | **Fix immediately** | CRITICAL findings. Any finding involving security vulnerability, data-loss risk, or correctness failure — regardless of severity. | Blocks merge. Must resolve before consideration. |
+  | **Fix before merge** | Structural regressions, missed simplifications, maintainability debt, or type-contract problems. Typically HIGH/MEDIUM but may include LOW findings that represent architectural drift. | Blocks merge. Resolve on this branch. |
+  | **Track** | Valid findings that don't block merge — pre-existing issues discovered incidentally, cosmetic suggestions, or minor naming inconsistencies. Create issues for follow-up. | Does not block merge. |
+
+  **Escalation rules** (severity overrides):
+  - MEDIUM + security-adjacent → Fix immediately
+  - LOW + same root-cause as a Fix-immediately finding → Fix before merge
+  - HIGH + pre-existing (not introduced by this diff) → Track
+
+  Triage labels appear on each consolidated finding heading:
+  `### H1: <finding title> [Fix before merge]`
+
+  Positive observations are not triaged.
+
 - **Coverage gaps:** dimensions not reviewed, files not assigned to any reviewer (from Phase 2.5 and Phase 4 verification), and any reviewer failures
 - **Report file:** path to `<TN_DIR>/THERMO-NUKE-REVIEW.md`
 
@@ -229,14 +304,14 @@ The consolidated report file (`THERMO-NUKE-REVIEW.md`) remains in the temp direc
 - If a reviewer fails, note the gap in the report and continue with remaining slices.
 - If a reviewer returns incomplete output, spawn a follow-up reviewer scoped to the specific gap.
 - Never silently ignore a reviewer failure.
-- **Never silently drop a finding.** If the finding index count doesn't match the mapping count, stop and reconcile. Every `###` in every slice file must appear in the final report or be explicitly marked withdrawn in the mapping with a reason. Dropping findings during clustering is a process violation — the clustering step must be additive (grouping), never subtractive (omitting).
+- **Never silently drop a finding.** If the finding index count doesn't match the mapping count, stop and reconcile. Every `###` in every slice file (excluding `### POS-*:` positive observations) must appear in the final report or be explicitly marked withdrawn in the mapping with a reason. Dropping findings during clustering is a process violation — the clustering step must be additive (grouping), never subtractive (omitting).
 
 ## Completion
 
 Before reporting done, verify:
 
 - All reviewers completed or failures documented
-- **Finding completeness invariant: every `###` finding in every `slice-*.md` has a mapping in `finding-mapping.md`. Zero unmapped findings.**
+- **Finding completeness invariant: every `###` finding in every `slice-*.md` has a mapping in `finding-mapping.md`, EXCLUDING `### POS-*:` positive observations (tracked separately in `positive-observations.md`). Zero unmapped non-positive findings.**
 - All findings appear in THERMO-NUKE-REVIEW.md (not just clustered highlights)
 - Report organized by the rubric's priority order
 - Task list up to date

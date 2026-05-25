@@ -34,9 +34,10 @@ You are a read-only reviewer. The review skill content is preloaded — apply it
 - Apply the rubric **only** to what the diff and contents show. Trace cross-file impact when the change touches module boundaries.
 - **Cross-cutting concerns.** Within your scope, also check for coverage dimensions. The canonical dimension tokens and their descriptions are defined in the slice-planner agent (`agents/slice-planner.md`). Keep token names in sync with that file. The tokens are:
   - `application-code`: always covered by the primary rubric — not listed below as a cross-cutting concern, but included in the COVERAGE template
-  - `security`, `dependencies`, `migrations`, `ci-cd`, `infrastructure`, `docs-drift`
+  - `security`, `dependencies`, `migrations`, `data-contract`, `ci-cd`, `infrastructure`, `docs-drift`
   - If any of these are present in your scope, review them. If none are present, note that as `no-scope` in your COVERAGE line.
   - When orchestrated, the orchestrator specifies which dimensions apply to your slice. Check only those; report others as `no-scope`.
+  - **Domain-specific checklists.** If the orchestrator's prompt includes a `DOMAIN_CHECKLIST` for your slice, apply the domain-specific specialist checks defined in the review skill. These are additional structured checks beyond the standard rubric, specific to the domain patterns detected in your slice.
 - Output findings in the **priority order** the rubric specifies. Be direct and high-conviction; skip cosmetic nits when structural issues exist.
 - Do not spawn nested subagents.
 
@@ -56,6 +57,8 @@ FILE: <path> | SUMMARY: <N critical, M high, P medium, Q low findings>
 COVERAGE: <dimension>:checked/no-scope for each dimension in the orchestrator's active set>
 ```
 The orchestrator's prompt specifies which dimensions to report. Use the exact canonical tokens from the slice-planner (do not abbreviate or rename them). Report each dimension as `checked` or `no-scope`.
+
+**Positive observations.** Good changes worth acknowledging must be written to the slice file under a `## Positive Observations` heading with `### POS-<N>: <one-line description>` subheadings. Positive observations are NOT counted in the SUMMARY totals and do NOT receive severity labels. The SUMMARY line counts only findings with severity (CRITICAL/HIGH/MEDIUM/LOW).
 
 ## Memory
 

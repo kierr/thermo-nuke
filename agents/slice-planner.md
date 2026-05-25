@@ -60,6 +60,7 @@ Determine the base commit:
    | `security` | injection points, PII flow, auth boundaries, credential handling |
    | `dependencies` | lockfile changes, version conflicts, new/removed packages |
    | `migrations` | sequencing, rollback safety, model-code coupling |
+   | `data-contract` | YAML/DB/seed/API-output schema consistency, enum validation, contract cross-checks |
    | `ci-cd` | workflow correctness, enforcement gates, script safety |
    | `infrastructure` | config files, build system, tooling configs, secrets, unsafe defaults |
    | `docs-drift` | comments match code, ADRs match implementation |
@@ -75,6 +76,17 @@ Determine the base commit:
 
 8. **Memory check.** Read existing project-scoped memory for domain boundary knowledge from previous runs. Apply known boundaries when grouping.
 
+9. **Domain detection.** For each slice, detect domain patterns requiring specialist review:
+
+   | Pattern | Domain Signal |
+   |---------|---------------|
+   | State machine definitions (AASM, state_machine, state columns) | `state-machine` |
+   | Enum-like columns (status/type with fixed values) | `enum-validation` |
+   | API contracts (JSON schemas, serializers) | `api-contract` |
+   | YAML config mirroring DB or code | `config-consistency` |
+
+   These signals guide the orchestrator to request specialist checks beyond the standard rubric for each slice.
+
 ## Output Format
 
 Return structured key-value pairs — terse, parseable. One section per slice:
@@ -87,12 +99,14 @@ PATHS: <space-separated directory paths with trailing slashes or explicit file p
 LINES: ~<estimated total changed lines>
 FOCUS: <one-line review focus area>
 COVERS: <canonical dimension tokens, e.g. "application-code security migrations">
+DOMAIN_CHECKLIST: <zero or more domain signals, e.g. "state-machine enum-validation">
 
 SLICE: <domain name>
 PATHS: <space-separated directory paths with trailing slashes or explicit file paths>
 LINES: ~<estimated total changed lines>
 FOCUS: <one-line review focus area>
 COVERS: <canonical dimension tokens>
+DOMAIN_CHECKLIST: <zero or more domain signals, or NONE>
 
 TOTAL_SLICES: <N>
 TOTAL_LINES: ~<total>

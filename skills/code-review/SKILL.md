@@ -83,6 +83,13 @@ Apply the baseline prompt above, plus these explicit review rules:
    - **Ask:** Is this orchestration more sequential or less atomic than it needs to be? Did a previously cohesive module become more coupled, more stateful, or harder to scan?
    - **Flag aggressively:** Sequential async flow where obviously independent work could stay simpler and clearer with parallel execution. Partial-update logic that leaves state less atomic than necessary.
 
+8. **Check data contracts when the diff touches schemas, seeds, YAML configs, or API boundaries.**
+   - When a change modifies a DB schema, migration, seed file, YAML config, or API/output schema, verify consistency across all layers.
+   - A column added in a migration should appear in seed data, YAML config, and any output schema.
+   - An enum changed in code should be reflected in DB constraint, seed data, and serializer.
+   - **Ask:** Does this change touch a contract boundary without updating all sides?
+   - **Flag aggressively:** Migration adds column but serializer/seed not updated. YAML config drifts from DB schema. Output schema references fields that no longer exist.
+
 ## Preferred Remedies
 
 When you identify a code-quality problem, prefer suggestions like:
@@ -126,6 +133,15 @@ Good phrases:
 - `i think there's a code-judo move here that makes this much simpler. can we reframe this so these branches disappear?`
 - `this refactor moves complexity around, but doesn't really delete it. is there a way to make the model itself simpler?`
 
+## Positive Observations
+
+When you encounter genuinely good changes (removing `T.unsafe`, simplifying a complex abstraction, deleting dead code), acknowledge them — but do NOT classify them as LOW findings. Instead:
+
+- List positive observations in a separate `## Positive Observations` section at the end of your output (after findings, before any assessment section).
+- Each positive observation gets a `### POS-<N>: <one-line description>` heading (e.g., `### POS-1: T.unsafe removal in Registerable`). Use this exact format.
+- Positive observations do NOT count toward finding totals. A review with 0 findings and 3 positive observations reports "0 findings" — not "3 findings."
+- Do not pad the list — only genuinely noteworthy structural improvements, simplifications, or debt reduction.
+
 ## Output Expectations
 
 Prioritize findings in this order:
@@ -140,6 +156,19 @@ Prioritize findings in this order:
 
 Do not flood the review with low-value nits if there are larger structural issues.
 Prefer a smaller number of high-conviction comments over a long list of cosmetic notes.
+
+## Domain-Specific Checklists
+
+When the slice planner provides a `DOMAIN_CHECKLIST`, apply the corresponding specialist checks in addition to the standard rubric:
+
+| Signal | Specialist Check |
+|--------|------------------|
+| `state-machine` | Map all defined transitions. Verify every transition has a guard or is explicitly unguarded by design. Check that invalid-state handling is complete (no silent acceptance of invalid states). |
+| `enum-validation` | Verify exhaustive case coverage for all enum values in switch/case or if/else chains. Check that invalid enum values are handled, not silently accepted. Verify enum values are consistent across code, DB constraints, seed data, and serializers. |
+| `api-contract` | Verify request/response schema symmetry. Check that serializer fields match the underlying model. Verify versioned contracts are backward-compatible. |
+| `config-consistency` | Cross-reference YAML configs against DB schema and seed data. Check that config keys match column names. Verify output schemas reference existing fields. |
+
+When no `DOMAIN_CHECKLIST` is provided or it is `NONE`, skip these checks.
 
 ## Approval Bar
 

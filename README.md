@@ -81,15 +81,16 @@ The orchestrator spawns a single reviewer agent with the full scope.
 
 ### Coverage dimensions
 
-Every review checks seven dimensions:
+Every review checks eight dimensions:
 
 1. **Application code quality** — structure, abstractions, layering
 2. **Security** — injection, PII flow, auth boundaries, credential handling
 3. **Dependencies** — lockfile changes, version conflicts
 4. **Migrations** — sequencing, rollback safety, model-code coupling
-5. **CI/CD** — workflow correctness, enforcement gates
-6. **Infrastructure** — config files, build system, secrets, unsafe defaults
-7. **Documentation drift** — comments match code, ADRs match implementation
+5. **Data contracts** — YAML/DB/seed/API-output schema consistency, enum validation, contract cross-checks
+6. **CI/CD** — workflow correctness, enforcement gates
+7. **Infrastructure** — config files, build system, secrets, unsafe defaults
+8. **Documentation drift** — comments match code, ADRs match implementation
 
 If any dimension is present in the diff but no reviewer confirmed checking it, a follow-up reviewer is spawned automatically. No gaps.
 
