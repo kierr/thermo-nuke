@@ -13,7 +13,7 @@ claude plugin add thermo-nuke
 Or install from source:
 
 ```bash
-claude plugin add https://github.com/ukier/thermo-nuke
+claude plugin add https://github.com/kierr/thermo-nuke
 ```
 
 ## Quick Start
@@ -130,4 +130,4 @@ scripts/             # Git hooks and tooling
 
 ## License
 
-Private. See [ukier/meta](https://github.com/ukier/meta) for org policies.
+MIT. See [LICENSE](LICENSE).
