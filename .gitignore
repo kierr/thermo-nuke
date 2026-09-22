@@ -1,4 +1,8 @@
-.claude/agent-memory/
+.claude/
+.agents/
+.pi/
+.planning/
+.codex/
 .DS_Store
 *.swp
 *~
