@@ -128,4 +128,4 @@ scripts/             # Git hooks and tooling
 
 ## License
 
-MIT. See [LICENSE](LICENSE). The review rubric is adapted from [shaneholloman/cursor-plugins](https://github.com/shaneholloman/cursor-plugins) (MIT). See [NOTICE](NOTICE) for details.
+MIT. See [LICENSE](LICENSE). The review rubric is adapted from [cursor/plugins](https://github.com/cursor/plugins) (MIT). See [NOTICE](NOTICE) for details.

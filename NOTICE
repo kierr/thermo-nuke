@@ -4,16 +4,15 @@ Copyright (c) 2025 kierr
 This project contains material adapted from third-party software:
 
 - The code review rubric in skills/code-review/SKILL.md is derived from
-  the "thermo-nuclear-code-quality-review" skill in the cursor-plugins
-  repository by Shane Holloman and contributors, licensed under the MIT
-  License.
-  Source: https://github.com/shaneholloman/cursor-plugins/blob/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review/SKILL.md
+  the "thermo-nuclear-code-quality-review" skill in the cursor/plugins
+  repository, licensed under the MIT License.
+  Source: https://github.com/cursor/plugins/blob/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review/SKILL.md
 
 The original license text:
 
   MIT License
 
-  Copyright (c) Shane Holloman
+  Copyright (c) Cursor
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal

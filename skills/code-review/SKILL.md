@@ -5,7 +5,7 @@ description: Run an extremely strict maintainability review for abstraction qual
 
 # Thermo-Nuclear Code Quality Review
 
-<!-- Adapted from https://github.com/shaneholloman/cursor-plugins/blob/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review/SKILL.md (MIT) -->
+Based on the [thermo-nuclear-code-quality-review](https://github.com/cursor/plugins/blob/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review/SKILL.md) skill from [cursor/plugins](https://github.com/cursor/plugins) (MIT).
 
 Use this skill for an unusually strict review focused on implementation quality, maintainability, abstraction quality, and codebase health.
 
