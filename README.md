@@ -1,8 +1,8 @@
 # thermo-nuke
 
-Extremely strict code quality reviews for Claude Code. Not a linter — a structural critic.
+Extremely strict code quality reviews for Claude Code. Not a linter; a structural critic.
 
-Catches the things linters can't: files crossing 1k lines, spaghetti branching, missed simplification opportunities ("code judo"), unnecessary abstractions, boundary leaks, and canonical helper duplication. The approval bar is intentionally high — no rubber-stamping "it works" implementations.
+Catches the things linters can't: files crossing 1k lines, spaghetti branching, missed simplification opportunities ("code judo"), unnecessary abstractions, boundary leaks, and canonical helper duplication. The approval bar is intentionally high. No rubber-stamping "it works" implementations.
 
 ## Installation
 
@@ -24,7 +24,7 @@ claude plugin add https://github.com/kierr/thermo-nuke
 /thermo-nuke:code-review
 ```
 
-Good for small scopes — a few files, recent commits, or working tree changes.
+Good for small scopes: a few files, recent commits, or working tree changes.
 
 ### Full branch or PR review
 
@@ -58,11 +58,11 @@ Catches structural problems when they're cheapest to fix.
 
 | Component | Type | What it does |
 |---|---|---|
-| `/thermo-nuke:code-review` | Skill | The review rubric. Can be invoked directly for a quick review. |
-| `thermo-nuke:orchestrator` | Agent | Coordinates full reviews: assesses scope, slices, spawns parallel reviewers, synthesizes findings. |
-| `thermo-nuke:reviewer` | Agent | Reviews a specific scope or domain slice using the rubric. |
-| `thermo-nuke:slice-planner` | Agent | Groups large diffs into domain slices for parallel review. |
-| `thermo-nuke:plan-reviewer` | Agent | Reviews implementation plans before code is written. |
+| `/thermo-nuke:code-review` | Skill | The review rubric. Invoke directly for a quick review. |
+| `thermo-nuke:orchestrator` | Agent | Coordinates full reviews: scope assessment, slicing, parallel reviewer dispatch, finding synthesis. |
+| `thermo-nuke:reviewer` | Agent | Deep review of a specific scope or domain slice against the rubric. |
+| `thermo-nuke:slice-planner` | Agent | Partitioning of large diffs into domain slices for parallel review. |
+| `thermo-nuke:plan-reviewer` | Agent | Structural review of implementation plans before code is written. |
 
 ## How It Works
 
@@ -72,27 +72,25 @@ The orchestrator spawns a single reviewer agent with the full scope.
 
 ### Large diffs
 
-1. **Assess** — determine scope, file count, and total lines changed
-2. **Slice** — the slice-planner groups files into domain-cohesive slices sized for parallel review
-3. **Gap check** — verify every file in the diff is covered by a slice; create gap-fill slices for any uncovered files or cross-cutting dimensions
-4. **Review** — spawn parallel reviewer agents (one per slice, max 10 concurrent)
-5. **Synthesize** — merge findings by root-cause clustering, verify coverage dimensions, write consolidated report
-6. **Report** — present findings organized by priority with an approval verdict
+1. **Assess**: determine scope, file count, and total lines changed
+2. **Slice**: the slice-planner groups files into domain-cohesive slices sized for parallel review
+3. **Gap check**: verify every file in the diff is covered by a slice; the planner creates gap-fill slices for uncovered files or cross-cutting dimensions
+4. **Review**: parallel reviewer agents (one per slice, max 10 concurrent)
+5. **Synthesize**: findings merged by root-cause clustering, coverage dimensions verified, consolidated report written
+6. **Report**: findings presented by priority with an approval verdict
 
-### Coverage dimensions
+### Eight coverage dimensions
 
-Every review checks eight dimensions:
+1. **Application code quality**: structure, abstractions, layering
+2. **Security**: injection, PII flow, auth boundaries, credential handling
+3. **Dependencies**: lockfile changes, version conflicts
+4. **Migrations**: sequencing, rollback safety, model-code coupling
+5. **Data contracts**: YAML/DB/seed/API-output schema consistency, enum validation, contract cross-checks
+6. **CI/CD**: workflow correctness, enforcement gates
+7. **Infrastructure**: config files, build system, secrets, unsafe defaults
+8. **Documentation drift**: comments match code, ADRs match implementation
 
-1. **Application code quality** — structure, abstractions, layering
-2. **Security** — injection, PII flow, auth boundaries, credential handling
-3. **Dependencies** — lockfile changes, version conflicts
-4. **Migrations** — sequencing, rollback safety, model-code coupling
-5. **Data contracts** — YAML/DB/seed/API-output schema consistency, enum validation, contract cross-checks
-6. **CI/CD** — workflow correctness, enforcement gates
-7. **Infrastructure** — config files, build system, secrets, unsafe defaults
-8. **Documentation drift** — comments match code, ADRs match implementation
-
-If any dimension is present in the diff but no reviewer confirmed checking it, a follow-up reviewer is spawned automatically. No gaps.
+If any dimension is present in the diff but no reviewer confirmed checking it, a follow-up reviewer is spawned automatically.
 
 ## Output
 
